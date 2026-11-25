@@ -35,7 +35,7 @@ const FD=[["Ruby Velvet Necklace","Necklaces","collection-ruby-velvet-necklace.w
 const fdc=()=>FD.map(([name,category,image])=>`<a class="card" href="#p-contact" aria-label="Enquire about ${name}"><div class="ph"><img src="${image}" alt="${name}" loading="lazy" decoding="async"></div><div class="cb"><h3>${name}</h3><p>${category}</p><span style="font-size:13px;color:var(--h)">Enquire about this design →</span></div></a>`).join("");
 const productViewMarkup=(p,mv,rel)=>`
 <div class="product-detail">
-<div class="product-gallery rv l"><div class="product-image-frame">${productVisual(p)}</div><div class="product-image-caption"><span>${p[1]} collection</span><span>Anand Jewels</span></div></div>
+<div class="product-gallery rv l"><div class="product-image-frame">${productVisual(p)}<button class="product-zoom-toggle" type="button" aria-label="Zoom product image" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5 21 21M10.5 8v5M8 10.5h5"></path></svg><span>Zoom for detail</span></button></div><div class="product-image-caption"><span>${p[1]} collection</span><span>Anand Jewels</span></div></div>
 <div class="product-info">
 <p class="product-kicker rv" style="--d:.06s"><span></span>${p[1]} · Fine Jewellery</p>
 <h1 class="product-title rv" style="--d:.12s">${p[2]}</h1>
@@ -58,6 +58,11 @@ const productViewMarkup=(p,mv,rel)=>`
 </div>
 </div>
 <section class="related-products"><div class="related-heading"><p class="product-kicker"><span></span>Discover more</p><h2>You may also like</h2></div><div class="grid related-grid">${rel.map(pc).join("")}</div></section>`;
+const setZoomOrigin=(frame,event)=>{const r=frame.getBoundingClientRect();frame.style.setProperty("--zoom-x",`${Math.max(0,Math.min(100,(event.clientX-r.left)/r.width*100))}%`);frame.style.setProperty("--zoom-y",`${Math.max(0,Math.min(100,(event.clientY-r.top)/r.height*100))}%`)};
+function toggleProductZoom(frame,button){const zoomed=frame.classList.toggle("zoomed");button.setAttribute("aria-pressed",String(zoomed));button.setAttribute("aria-label",zoomed?"Reset product image zoom":"Zoom product image");button.querySelector("span").textContent=zoomed?"Reset zoom":"Zoom for detail"}
+document.addEventListener("pointermove",e=>{if(!fine)return;const frame=e.target.closest(".product-image-frame");if(frame)setZoomOrigin(frame,e)},{passive:true});
+document.addEventListener("pointerdown",e=>{const frame=e.target.closest(".product-image-frame");if(!frame||e.pointerType=="mouse"||e.target.closest(".product-zoom-toggle"))return;setZoomOrigin(frame,e);if(!frame.classList.contains("zoomed"))toggleProductZoom(frame,frame.querySelector(".product-zoom-toggle"))},{passive:true});
+document.addEventListener("click",e=>{const button=e.target.closest(".product-zoom-toggle");if(button)toggleProductZoom(button.closest(".product-image-frame"),button)});
 const aboutPage=()=>["About Us",`
 <section class="about-intro about-band"><div class="about-inner">
 <div class="about-label rv l" style="--d:.05s"><h1>About us</h1></div>

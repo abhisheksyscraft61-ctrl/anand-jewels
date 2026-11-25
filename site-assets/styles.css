@@ -201,8 +201,8 @@ header{background:rgba(54,31,24,.9)}
  .hero{min-height:72svh}.hero .wrap{padding:92px 20px 40px}.hero h1{font-size:clamp(24px,4.2vw,36px);line-height:1.04;bottom:26px;white-space:nowrap}.chips{top:46%;gap:8px;padding:0 10px}.chips a{font-size:clamp(15px,2.4vw,21px)}
 .two,.cg{grid-template-columns:1fr}#collection{padding:34px 0}#collection .featured-strip{grid-template-columns:1fr;gap:20px}#collection .featured-copy h2{max-width:210px}
 .showroom-banner .wrap{justify-content:center} .footer-layout{grid-template-columns:180px 1fr;gap:24px}
-form{grid-template-columns:1fr}section{padding:68px 0}.btn.o{margin:10px 0 0}.rv.l,.rv.r{transform:translateY(40px)}}
-@media(max-width:480px){.hero h1{white-space:normal;max-width:calc(100% - 28px);margin:0 auto;font-size:clamp(24px,7vw,30px);bottom:24px}.chips{top:43%;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:0 6px}.chips a{font-size:12px}.mt span{font-size:10px}.mt .wrap>*{padding:4px}.footer-layout{grid-template-columns:1fr;gap:28px}.footer-brand{text-align:center}.footer-brand .brand-logo{width:170px;margin:auto}.footer-nav{justify-content:center;gap:9px;padding-bottom:18px}.footer-nav a{font-size:9px}.footer-bottom{gap:12px;padding-top:18px}.footer-bottom p{font-size:11px;text-align:right}.footer-legal{justify-content:center;gap:10px}.copy{margin-top:24px;padding-top:14px}#collection .featured-items{gap:8px}.showroom-banner{background-position:24% center}.showroom-cta{padding:12px 16px}}
+form{grid-template-columns:1fr}section{padding:68px 0}.btn.o{margin:10px 0 0}.rv.l,.rv.r{transform:translateY(40px)}.rv.l.in,.rv.r.in{transform:none}}
+@media(max-width:480px){.hero h1{white-space:normal;max-width:calc(100% - 28px);margin:0 auto;font-size:clamp(24px,7vw,30px);bottom:24px}.chips{top:43%;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;padding:0 6px}.chips a{font-size:12px}.mt span{font-size:10px}.mt .wrap>*{padding:4px}.footer-layout{grid-template-columns:1fr;gap:28px}.footer-brand{text-align:center}.footer-brand .brand-logo{width:170px;margin:auto}.footer-nav{justify-content:center;gap:9px;padding-bottom:18px}.footer-nav a{font-size:9px}.footer-bottom{gap:12px;padding-top:18px}.footer-bottom p{font-size:11px;text-align:right}.footer-legal{justify-content:center;gap:10px}.copy{margin-top:24px;padding-top:14px}#collection .featured-items{gap:8px}.showroom-banner{background-position:24% center}.showroom-banner .wrap{align-items:flex-start;justify-content:flex-end;padding-top:24px}.showroom-cta{padding:11px 10px;background:rgba(81,0,13,.45);font-size:13px;letter-spacing:.3px;white-space:nowrap}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rv,.tag,.chips,.cta,.gw{opacity:1;transform:none}.hero h1 span b{transform:none}}
 header.pg{background:rgba(54,31,24,.97)}
 #pg{display:none;min-height:80vh;padding:50px 0 90px}
@@ -279,11 +279,12 @@ header.pg{background:rgba(54,31,24,.97)}
 .growth-list span,.growth-list b{font-size:11px}
 #pg .about-journey{padding:44px 20px 54px}
 #pg .about-journey h2{font-size:40px;margin-bottom:34px}
+#pg .about-copy p{font-size:14px;line-height:1.55}
 .about-stories{grid-template-columns:1fr;gap:30px}
 .about-story,.about-story:nth-child(n+4){grid-column:1}
 .about-story{grid-template-columns:1fr;gap:14px;align-items:start}
 .about-story img{height:clamp(150px,48vw,190px);max-height:none}
-#pg .about-story p{font-size:11px}
+#pg .about-story p{font-size:12px;line-height:1.55}
 }
 #pg h1{font-size:clamp(34px,5vw,56px);color:var(--h);margin-bottom:8px}#pg h2{color:var(--h);font-size:32px;margin:40px 0 18px}
 #pg p{color:var(--mute);margin:10px 0}
@@ -408,7 +409,7 @@ body.product-page-active .wa,body.product-page-active .tp,body.about-page-active
 #pg.product-page-active .bc{padding-top:22px;margin-bottom:18px}
 #pg.product-page-active .product-detail{gap:22px}
 #pg.product-page-active .product-image-frame{aspect-ratio:1;border-radius:18px}
-#pg.product-page-active .product-image-caption{font-size:9px}
+#pg.product-page-active .product-image-caption{font-size:10px;letter-spacing:.7px}
 #pg.product-page-active .product-info{padding:0 2px}
 #pg.product-page-active .product-title{font-size:clamp(34px,10vw,44px)}
 #pg.product-page-active .product-spec-heading{margin-top:23px}

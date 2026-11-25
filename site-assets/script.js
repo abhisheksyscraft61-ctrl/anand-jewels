@@ -46,12 +46,12 @@ const LG={privacy:["Privacy Policy","We collect only the details you submit (nam
 const AR=[["Gold Purity Guide","Buying Guide","22K gold is 91.6% pure and 18K is 75%. Higher karat means richer colour but softer metal; lower karat is tougher for daily wear."],["Diamond Buying Guide","Buying Guide","Judge a diamond on the 4Cs: cut, colour, clarity and carat. Cut affects sparkle the most."],["Jewellery Care Tips","Care","Store pieces separately, keep them away from perfume and water, and wipe with a soft cloth after wearing."]];
 const frm=(b,x="")=>`<form>${x}<input required placeholder="Name"><input required type="tel" placeholder="Phone">${b}<input name="hp" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px"><div class="ok">Thank you! We will contact you shortly.</div></form>`;
 const productVisual=p=>p[7]?`<img src="${p[7]}" alt="${p[2]}" loading="lazy" decoding="async">`:`<svg viewBox="0 0 100 100">${ic[p[1]]}</svg>`;
-const pc=p=>`<a class="card" href="#p-product-${p[0]}"><div class="ph">${productVisual(p)}</div><div class="cb"><h3>${p[2]}</h3><p>${p[3]} ${p[4]}${p[3]=="Gold"?"K":""} · ${p[5]} g${p[6]!="None"?" · Diamond":""}</p><span style="font-size:13px;color:var(--h)">${inr(pr(p))}*</span></div></a>`;
+const pc=(p,i=0)=>`<a class="card collection-card-reveal" style="--d:${Math.min(i,5)*.06}s" href="#p-product-${p[0]}"><div class="ph">${productVisual(p)}</div><div class="cb"><h3>${p[2]}</h3><p>${p[3]} ${p[4]}${p[3]=="Gold"?"K":""} · ${p[5]} g${p[6]!="None"?" · Diamond":""}</p><span style="font-size:13px;color:var(--h)">${inr(pr(p))}*</span></div></a>`;
 function ld(o){let s=$("ld");if(!s){s=document.createElement("script");s.id="ld";s.type="application/ld+json";document.head.appendChild(s)}s.textContent=o?JSON.stringify(o):"{}"}
-function fc(){const g=i=>$(i).value,o=g("fo");let l=P.filter(p=>(g("fc")=="All"||p[1]==g("fc"))&&(g("fm")=="All"||p[3]==g("fm"))&&(g("fs")=="All"||p[6]==g("fs"))&&pr(p)<=+g("fp"));if(o=="lo")l.sort((a,b)=>pr(a)-pr(b));if(o=="hi")l.sort((a,b)=>pr(b)-pr(a));$("cg2").innerHTML=l.length?l.map(pc).join(""):"<p>No designs match these filters.</p>"}
+function fc(){const g=i=>$(i).value,o=g("fo");let l=P.filter(p=>(g("fc")=="All"||p[1]==g("fc"))&&(g("fm")=="All"||p[3]==g("fm"))&&(g("fs")=="All"||p[6]==g("fs"))&&pr(p)<=+g("fp"));if(o=="lo")l.sort((a,b)=>pr(a)-pr(b));if(o=="hi")l.sort((a,b)=>pr(b)-pr(a));$("cg2").innerHTML=l.length?l.map((p,i)=>pc(p,i)).join(""):"<p>No designs match these filters.</p>";$("cg2").querySelectorAll(".collection-card-reveal").forEach(e=>io.observe(e))}
 function es(mv){const k=+$("mk").value||0,m=mv*k/100,g=(mv+m)*.03;$("eo").innerHTML=`<div><span>Metal value</span><b>${inr(mv)}</b></div><div><span>Making charges</span><b>${inr(m)}</b></div><div><span>GST (3%)</span><b>${inr(g)}</b></div><div class="estimate-total"><span>Estimated total</span><b>${inr(mv+m+g)}</b></div>`}
 const FD=[["Ruby Velvet Necklace","Necklaces","collection-ruby-velvet-necklace.webp"],["Floral Pendant Design","Pendants","collection-floral-pendant.webp"],["Diamond Necklace Set","Necklaces","collection-diamond-necklace-set.webp"],["Statement Necklace","Necklaces","collection-statement-necklace.webp"],["Ranihar Antique Necklace","Necklaces","collection-ranihar-antique.webp"],["Emerald Teardrop Earrings","Earrings","collection-emerald-teardrop-earrings.webp"],["Polki Necklace","Necklaces","collection-polki-necklace.webp"]];
-const fdc=()=>FD.map(([name,category,image])=>`<a class="card" href="#p-contact" aria-label="Enquire about ${name}"><div class="ph"><img src="${image}" alt="${name}" loading="lazy" decoding="async"></div><div class="cb"><h3>${name}</h3><p>${category}</p><span style="font-size:13px;color:var(--h)">Enquire about this design →</span></div></a>`).join("");
+const fdc=()=>FD.map(([name,category,image],i)=>`<a class="card collection-card-reveal" style="--d:${Math.min(i,5)*.06}s" data-design-name="${name}" href="#p-contact" aria-label="Enquire about ${name}"><div class="ph"><img src="${image}" alt="${name}" loading="lazy" decoding="async"></div><div class="cb"><h3>${name}</h3><p>${category}</p><span style="font-size:13px;color:var(--h)">Enquire about this design →</span></div></a>`).join("");
 const productViewMarkup=(p,mv,rel)=>`
 <div class="product-detail">
 <div class="product-gallery rv l"><div class="product-image-frame">${productVisual(p)}<button class="product-zoom-toggle" type="button" aria-label="Zoom product image" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="M15.5 15.5 21 21M10.5 8v5M8 10.5h5"></path></svg><span>Zoom for detail</span></button></div><div class="product-image-caption"><span>${p[1]} collection</span><span>Anand Jewels</span></div></div>
@@ -116,21 +116,128 @@ const aboutPage=()=>["About Us",`
 </div></div></section>`];
 const V={
 about:aboutPage,
-collection:a=>{const C=[...new Set(P.map(p=>p[1]))],selected=C.includes(a)?a:"All";return["Jewellery Collection",`${bc("Collection")}<h1>Our Collection</h1><p>Filter by category, metal, stone and price.</p><input id="fc" type="hidden" value="${selected}"><div class="collection-category"><span class="collection-filter-label">Category</span><div class="category-options" role="group" aria-label="Filter by category">${["All",...C].map(c=>`<button type="button" class="category-option ${c==selected?"active":""}" data-category="${c}" aria-pressed="${c==selected}">${c}</button>`).join("")}</div></div><div class="fl2"><label class="collection-filter"><span>Metal</span><select id="fm" onchange="fc()">${op(["Gold","Silver"],["Gold","Silver"].includes(a)?a:"All")}</select></label><label class="collection-filter"><span>Stone</span><select id="fs" onchange="fc()">${op(["Diamond","None"],a=="Diamond"?a:"All")}</select></label><label class="collection-filter collection-filter-price"><span>Price</span><select id="fp" onchange="fc()"><option value="9999999">Any price</option><option value="50000">Up to ₹50,000</option><option value="100000">Up to ₹1,00,000</option><option value="200000">Up to ₹2,00,000</option></select></label><label class="collection-filter collection-filter-sort"><span>Sort by</span><select id="fo" onchange="fc()"><option value="d">Featured</option><option value="lo">Price: Low to High</option><option value="hi">Price: High to Low</option></select></label></div><div class="grid" id="cg2"></div><p style="font-size:12px">*Indicative price at demo rates. Final price confirmed at the showroom.</p><h2>More designs</h2><p>Browse additional designs and enquire with our team for details.</p><div class="grid">${fdc()}</div>`,"",null,fc]},
+collection:a=>{
+ const C=[...new Set(P.map(p=>p[1]))],selected=C.includes(a)?a:"All";
+ const stories=[
+  {name:"DIAMOND",title:"Brilliance Refined.",key:"diamond",cta:"Explore Diamond Jewellery",image:"collection-diamond-reference.jpg",alt:"Diamond and emerald necklace on red fabric",copy:["Elegant, contemporary and effortlessly timeless, our diamond jewellery is designed to celebrate life's most meaningful moments.","From understated everyday pieces to striking occasion jewellery, every creation brings together refined design, exceptional craftsmanship and enduring brilliance."]},
+  {name:"POLKI",title:"Tradition, Reimagined.",key:"polki",cta:"Explore Polki Jewellery",image:"collection-polki-necklace.webp",alt:"Traditional Polki necklace with green stones and pearls",copy:["Rooted in heritage and crafted for today, our Polki jewellery celebrates the beauty of Indian craftsmanship through intricate details, graceful forms and timeless character.","Designed for weddings, celebrations and moments meant to be remembered, each piece carries tradition forward with a distinctive Anand Jewels expression."]},
+  {name:"GOLD",title:"Timeless by Nature.",key:"gold",cta:"Explore Gold Jewellery",image:"collection-gold-reference.jpg",alt:"Gold jewellery displayed against a warm neutral background",copy:["Gold has always been part of life's most cherished celebrations.","Our gold jewellery blends classic craftsmanship with contemporary design, creating pieces that feel equally beautiful for everyday moments, festive occasions and generations to come."]}
+ ];
+ return["Jewellery Collection",`<div class="collection-page">
+  <header class="collection-intro-band rv">
+   <div class="collection-intro-inner">
+    <span class="collection-eyebrow">ANAND JEWELS · THE COLLECTION</span>
+    <h1>Our Collection</h1>
+    <h2>Crafted for Every Story</h2>
+    <p>From timeless traditions to contemporary expressions, discover jewellery created with thoughtful design, refined craftsmanship and the trust of Anand Jewels.</p>
+   </div>
+  </header>
+  <div class="collection-editorials">
+   <article class="collection-story collection-story-diamond rv" aria-labelledby="collection-diamond-title" style="--d:.12s">
+    <div class="collection-story-copy">
+     <span class="collection-story-label">${stories[0].name}</span>
+     <h2 id="collection-diamond-title">${stories[0].title}</h2>
+     ${stories[0].copy.map(text=>`<p>${text}</p>`).join("")}
+     <button type="button" class="collection-story-link" data-collection-jump="diamond">${stories[0].cta}</button>
+    </div>
+    <div class="collection-story-photo"><img src="${stories[0].image}" alt="${stories[0].alt}" loading="eager" decoding="async"></div>
+   </article>
+   <article class="collection-story collection-story-polki rv" aria-labelledby="collection-polki-title" style="--d:.24s">
+    <div class="collection-story-copy">
+     <span class="collection-story-label">${stories[1].name}</span>
+     <h2 id="collection-polki-title">Tradition,<br>Reimagined.</h2>
+     ${stories[1].copy.map(text=>`<p>${text}</p>`).join("")}
+     <button type="button" class="collection-story-link" data-collection-jump="polki">${stories[1].cta}</button>
+    </div>
+    <div class="collection-story-photo"><img src="${stories[1].image}" alt="${stories[1].alt}" loading="lazy" decoding="async"></div>
+    <div class="collection-story-spacer" aria-hidden="true"></div>
+   </article>
+   <article class="collection-story collection-story-gold rv" aria-labelledby="collection-gold-title" style="--d:.36s">
+    <div class="collection-story-copy">
+     <span class="collection-story-label">${stories[2].name}</span>
+     <h2 id="collection-gold-title">${stories[2].title}</h2>
+     ${stories[2].copy.map(text=>`<p>${text}</p>`).join("")}
+     <button type="button" class="collection-story-link" data-collection-jump="gold">${stories[2].cta}</button>
+    </div>
+    <div class="collection-story-photo"><img src="${stories[2].image}" alt="${stories[2].alt}" loading="lazy" decoding="async"></div>
+   </article>
+  </div>
+  <div class="collection-signoff rv">Beautiful Jewels at Honest Prices</div>
+  <section class="collection-browse" aria-labelledby="collection-browse-title" hidden>
+   <div class="collection-browse-heading rv"><span class="collection-eyebrow">FIND YOUR FAVOURITE</span><h2 id="collection-browse-title">Explore every design</h2><p>Filter the collection to find a piece that feels like you.</p></div>
+   <input id="fc" type="hidden" value="${selected}">
+   <div class="collection-category"><span class="collection-filter-label">Category</span><div class="category-options" role="group" aria-label="Filter by category">${["All",...C].map(c=>`<button type="button" class="category-option ${c==selected?"active":""}" data-category="${c}" aria-pressed="${c==selected}">${c}</button>`).join("")}</div></div>
+   <div class="fl2"><label class="collection-filter"><span>Metal</span><select id="fm" onchange="fc()">${op(["Gold","Silver"],["Gold","Silver"].includes(a)?a:"All")}</select></label><label class="collection-filter"><span>Stone</span><select id="fs" onchange="fc()">${op(["Diamond","None"],a=="Diamond"?a:"All")}</select></label><label class="collection-filter collection-filter-price"><span>Price</span><select id="fp" onchange="fc()"><option value="9999999">Any price</option><option value="50000">Up to ₹50,000</option><option value="100000">Up to ₹1,00,000</option><option value="200000">Up to ₹2,00,000</option></select></label><label class="collection-filter collection-filter-sort"><span>Sort by</span><select id="fo" onchange="fc()"><option value="d">Featured</option><option value="lo">Price: Low to High</option><option value="hi">Price: High to Low</option></select></label></div>
+   <div class="grid" id="cg2"></div><p class="collection-price-note">*Indicative prices at demo rates. Final price is confirmed at the showroom.</p>
+   <div class="collection-more rv" id="more-designs"><h2>More designs to discover</h2><p>Explore additional pieces from the Anand Jewels collection.</p><div class="grid">${fdc()}</div></div>
+  </section>
+ </div>`,"",null,fc]},
 product:a=>{const p=P.find(x=>x[0]==a);if(!p)return V.nf();const mv=pr(p),rel=P.filter(x=>x[1]==p[1]&&x!=p).concat(P.filter(x=>x[1]!=p[1])).slice(0,3);return[p[2],`${bc('<a href="#p-collection">Collection</a>',p[2])}${productViewMarkup(p,mv,rel)}`,p[2]+" in "+p[3],{"@context":"https://schema.org","@type":"Product",name:p[2],brand:"Anand Jewels",material:p[3],weight:p[5]+" g",offers:{"@type":"Offer",priceCurrency:"INR",price:Math.round(mv)}},()=>es(mv)]},
 stores:()=>["Store Locator",`${bc("Store Locator")}<div class="stores-intro rv"><div><span class="store-eyebrow">COME VISIT US</span><h1>Our 5 Showrooms</h1><p>Step into Anand Jewels and discover a more personal jewellery experience.</p></div><a class="store-nearby" target="_blank" rel="noopener" href="https://www.google.com/maps/search/Anand+Jewels+near+me"><span aria-hidden="true">⌖</span>Find a showroom near me <span aria-hidden="true">↗</span></a></div><svg class="map" viewBox="0 0 600 240"><defs>${MP.map((c,i)=>`<clipPath id="cl${i}"><circle cx="${c[0]}" cy="${c[1]}" r="24"/></clipPath>`).join("")}</defs>${MP.map((c,i)=>`<a href="#p-store-${i+1}" aria-label="View ${S[i][0]} showroom"><g class="pn"><circle cx="${c[0]}" cy="${c[1]}" r="27" fill="#f3dc8a"/><image href="${S[i][1]}" x="${c[0]-24}" y="${c[1]-24}" width="48" height="48" preserveAspectRatio="xMidYMid slice" clip-path="url(#cl${i})"/></g><text x="${c[0]}" y="${c[1]+46}" fill="#f3dc8a" font-size="12.5" text-anchor="middle">${S[i][0]}</text></a>`).join("")}</svg><p class="store-guide rv">Choose a showroom to explore its details and plan your visit.</p><div class="shops">${S.map(storeCard).join("")}</div>`],
 store:a=>{const s=S[a-1];if(!s)return V.nf();const [name,image,addr,hrs,rate]=s;return[name,`${bc('<a href="#p-stores">Showrooms</a>',name)}<div class="pd"><img src="${image}" alt="${name} showroom" style="width:100%;border-radius:20px;max-height:480px;object-fit:cover"><div><h1>${name}</h1><p>📍 ${addr}</p><p>🕒 ${hrs}</p>${rate?`<p>⭐ ${rate}</p>`:""}<p><a href="tel:+910000000000" style="color:var(--h)">📞 Call</a></p><a class="btn" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent("Anand Jewels "+(addr.startsWith("Address")?name:addr))}" style="color:var(--m2)">Get Directions</a></div></div><h2>Book a Visit</h2>${frm('<input required type="date"><button class="btn f">Confirm Appointment</button>')}`,"Visit Anand Jewels "+name,{"@context":"https://schema.org","@type":"JewelryStore",name:"Anand Jewels "+name}]},
-contact:()=>["Contact Us",`${bc("Contact Us")}<h1>Contact Us</h1><div class="cg"><div><ul><li>📍 Head office address (to be updated)</li><li>📞 Sales: to be updated</li><li>📞 Support: to be updated</li><li>✉️ Email: to be updated</li><li>💬 <a href="https://wa.me/910000000000" style="color:var(--h)">WhatsApp us</a></li></ul></div>${frm('<input class="f" type="email" placeholder="Email"><select class="f"><option>Department: Sales</option><option>Support</option><option>Custom design</option></select><textarea class="f" rows="4" placeholder="Message"></textarea><button class="btn f">Send Enquiry</button>')}</div>`],
+contact:()=>{
+ const address="19, Malviya Nagar, Bhopal, Madhya Pradesh 462003";
+ const query=encodeURIComponent(`Anand Jewels, ${address}`);
+ const directions=`https://www.google.com/maps/search/?api=1&query=${query}`;
+ const map=`https://maps.google.com/maps?q=${query}&output=embed`;
+ return["Contact Us",`${bc("Contact Us")}<section class="contact-page" aria-labelledby="contact-title">
+  <div class="contact-hero rv">
+   <div class="contact-hero-copy">
+    <span class="contact-eyebrow">CONTACT ANAND JEWELS</span>
+    <h1 id="contact-title">Let’s talk,<br><em>jewellery.</em></h1>
+    <p>Questions, custom designs, or planning a visit? Our team is happy to help.</p>
+    <button class="contact-hero-action" type="button" data-contact-scroll>Send an enquiry <span aria-hidden="true">↘</span></button>
+   </div>
+  </div>
+  <div class="contact-grid">
+   <div class="contact-details rv l" style="--d:.08s">
+    <span class="contact-overline">VISIT OUR BHOPAL FLAGSHIP</span>
+    <h2>Come by for a visit.</h2>
+    <p class="contact-description">Explore the collection in person, discuss a custom design, or plan a visit with our team.</p>
+    <div class="contact-location-card">
+     <span class="contact-location-icon" aria-hidden="true">⌖</span>
+     <div><span class="contact-card-label">VISIT OUR FLAGSHIP</span><h3>Anand Jewels · Bhopal</h3><p>${address}</p></div>
+    </div>
+    <div class="contact-hours"><span class="contact-hours-icon" aria-hidden="true">◷</span><div><span class="contact-card-label">SHOWROOM HOURS</span><strong>Open daily · 11:30 AM – 9:30 PM</strong></div></div>
+    <p class="contact-note">Can’t visit today? Send us an enquiry and we’ll be happy to help.</p>
+   </div>
+   <form class="contact-form rv r" id="contact-enquiry" style="--d:.14s">
+    <div class="contact-form-heading"><span class="contact-card-label">A NOTE TO OUR TEAM</span><h2>How can we help?</h2><p>Share a few details and we’ll be in touch.</p></div>
+    <div class="contact-fields">
+     <label class="contact-field">Full name<input id="contact-name" name="name" type="text" autocomplete="name" placeholder="Your name" required></label>
+     <label class="contact-field">Phone number<input name="phone" type="tel" autocomplete="tel" placeholder="Your phone number" required></label>
+     <label class="contact-field contact-field-wide">Email address <span class="contact-optional">(optional)</span><input name="email" type="email" autocomplete="email" placeholder="you@example.com"></label>
+     <label class="contact-field contact-field-wide">What can we help with?<select name="department"><option>Sales enquiry</option><option>Custom design</option><option>Book a showroom visit</option><option>Order support</option></select></label>
+     <label class="contact-field contact-field-wide">Your message<textarea name="message" rows="4" placeholder="Tell us what you have in mind"></textarea></label>
+    </div>
+    <input class="contact-honeypot" name="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <button class="btn contact-submit" type="submit">Send enquiry <span aria-hidden="true">→</span></button>
+    <p class="contact-privacy">Your details are only used to respond to your enquiry.</p>
+    <div class="ok" role="status" aria-live="polite">Thank you! We’ll be in touch shortly.</div>
+   </form>
+  </div>
+  <div class="contact-map-section rv" style="--d:.1s">
+   <div class="contact-map-heading"><div><span class="contact-overline">COME VISIT US</span><h2>Find our showroom</h2></div><a href="${directions}" target="_blank" rel="noopener">Get directions <span aria-hidden="true">↗</span></a></div>
+   <div class="contact-map-frame"><iframe title="Map to Anand Jewels flagship showroom in Bhopal" src="${map}" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe></div>
+   <div class="contact-map-caption"><span><span aria-hidden="true">⌖</span> ${address}</span><a href="${directions}" target="_blank" rel="noopener">Open in Google Maps <span aria-hidden="true">↗</span></a></div>
+  </div>
+ </section>`];
+},
 insights:()=>["The Anand Insights",`${bc("Insights")}<h1>The Anand Insights</h1><p>Buying guides, care tips, trends and festive collections.</p><div class="grid" style="margin-top:26px">${AR.map((x,i)=>`<a class="card" href="#p-article-${i}"><div class="cb"><small style="color:var(--g)">${x[1].toUpperCase()}</small><h3>${x[0]}</h3><p>${x[2].slice(0,70)}…</p></div></a>`).join("")}</div>`],
 article:a=>{const x=AR[a];if(!x)return V.nf();return[x[0],`${bc('<a href="#p-insights">Insights</a>',x[0])}<h1>${x[0]}</h1><p>By Anand Jewels Editorial · ${x[1]} · Date to be added</p><p style="color:var(--ink);font-size:17px">${x[2]}</p><a class="btn" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(x[0])}" style="color:var(--m2)">Share on WhatsApp</a><h2>Related posts</h2>${AR.map((y,i)=>i==a?"":`<a class="pk" href="#p-article-${i}">${y[0]}</a>`).join("")}`,x[2],{"@context":"https://schema.org","@type":"Article",headline:x[0],author:"Anand Jewels"}]},
 legal:a=>{const x=LG[a]||LG.privacy;return[x[0],`${bc(x[0])}<h1>${x[0]}</h1><div style="margin:18px 0">${Object.keys(LG).map(k=>`<a class="pk ${LG[k]==x?"a":""}" href="#p-legal-${k}">${LG[k][0]}</a>`).join("")}</div><p style="color:var(--ink)">${x[1]}</p><p style="font-size:12px">Draft text, to be finalised by Anand Jewels.</p>`]},
 sitemap:()=>["Sitemap",`${bc("Sitemap")}<h1>Sitemap</h1><ul style="line-height:2.2;margin-top:16px">${["about","collection","stores","insights","contact","legal-privacy","legal-terms","legal-shipping","legal-hallmark","legal-cookie"].map(k=>`<li><a href="#p-${k}" style="color:var(--h)">${k.replace("-"," · ")}</a></li>`).join("")}</ul>`],
 nf:()=>["Page not found",`<div style="text-align:center;padding:60px 0"><h1>404</h1><p>This page could not be found.</p><a class="btn" href="#home" style="color:var(--m2);margin-top:16px">Back to Home</a></div>`]};
 function route(){const h=location.hash.slice(1),hv=$("hv"),pg=$("pg"),on=h.startsWith("p-");$("hd").classList.toggle("pg",on);document.title=T0;ld(null);
-if(!on){document.body.classList.remove("product-page-active","about-page-active");hv.style.display="";pg.style.display="none";if(h){const t=$(h);t&&t.scrollIntoView()}return}
-const [,k,...r]=h.split("-"),x=(V[k]||V.nf)(r.join("-"))||V.nf();pg.classList.toggle("about-page-active",k=="about");pg.classList.toggle("collection-page-active",k=="collection");pg.classList.toggle("product-page-active",k=="product");document.body.classList.toggle("product-page-active",k=="product");document.body.classList.toggle("about-page-active",k=="about");hv.style.display="none";pg.style.display="block";pg.innerHTML=`<div class="wrap">${x[1]}</div>`;document.title=x[0]+" – Anand Jewels";
+if(!on){document.body.classList.remove("product-page-active","about-page-active","contact-page-active");pg.classList.remove("contact-page-active");hv.style.display="";pg.style.display="none";if(h){const t=$(h);t&&t.scrollIntoView()}return}
+const [,k,...r]=h.split("-"),x=(V[k]||V.nf)(r.join("-"))||V.nf();pg.classList.toggle("about-page-active",k=="about");pg.classList.toggle("collection-page-active",k=="collection");pg.classList.toggle("product-page-active",k=="product");document.body.classList.toggle("product-page-active",k=="product");document.body.classList.toggle("about-page-active",k=="about");document.body.classList.toggle("contact-page-active",k=="contact");hv.style.display="none";pg.style.display="block";pg.innerHTML=`<div class="wrap">${x[1]}</div>`;document.title=x[0]+" – Anand Jewels";
+pg.classList.toggle("contact-page-active",k=="contact");
+const contactScroll=pg.querySelector("[data-contact-scroll]");
+if(contactScroll)contactScroll.addEventListener("click",()=>pg.querySelector("#contact-enquiry").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth",block:"center"}));
 const categoryOptions=pg.querySelector(".category-options");if(categoryOptions)categoryOptions.addEventListener("click",e=>{const b=e.target.closest(".category-option");if(!b)return;$("fc").value=b.dataset.category;categoryOptions.querySelectorAll(".category-option").forEach(x=>{const active=x===b;x.classList.toggle("active",active);x.setAttribute("aria-pressed",String(active))});fc()});
-if(x[2]){let m=document.querySelector('meta[name=description]');m&&m.setAttribute("content",x[2])}x[3]&&ld(x[3]);x[4]&&x[4]();scrollTo(0,0);pg.querySelectorAll(".rv").forEach(e=>io.observe(e))}
+const collectionBrowse=pg.querySelector(".collection-browse");
+pg.querySelectorAll("[data-collection-jump]").forEach(button=>button.addEventListener("click",()=>{const target=button.dataset.collectionJump,behavior=matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth";if(collectionBrowse)collectionBrowse.hidden=false;if(target=="polki"){pg.querySelector('[data-design-name="Polki Necklace"]')?.scrollIntoView({behavior,block:"center"});return}$("fc").value="All";$("fm").value=target=="gold"?"Gold":"All";$("fs").value=target=="diamond"?"Diamond":"All";$("fp").value="9999999";$("fo").value="d";categoryOptions?.querySelectorAll(".category-option").forEach(x=>{const active=x.dataset.category=="All";x.classList.toggle("active",active);x.setAttribute("aria-pressed",String(active))});fc();collectionBrowse?.scrollIntoView({behavior,block:"start"})}));
+if(x[2]){let m=document.querySelector('meta[name=description]');m&&m.setAttribute("content",x[2])}x[3]&&ld(x[3]);x[4]&&x[4]();scrollTo(0,0);pg.querySelectorAll(".rv,.collection-card-reveal").forEach(e=>io.observe(e))}
 addEventListener("hashchange",route);route();
 document.addEventListener("submit",e=>{if(!e.target.closest("#pg"))return;e.preventDefault();const f=e.target;if(f.querySelector('[name=hp]').value)return;f.querySelector(".ok").style.display="block";f.reset()});
 const so=document.createElement("div");so.id="so";so.innerHTML='<input id="si" placeholder="Search rings, necklaces, gold…"><div id="sr2"></div>';document.body.appendChild(so);

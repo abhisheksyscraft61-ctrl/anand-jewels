@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Admin · Anand Jewels</title>
+  <link rel="stylesheet" href="/admin.css">
+  <link rel="stylesheet" href="/cms.css">
+</head>
+<body>
+  <main id="login-screen" class="login-screen" hidden>
+    <section class="login-card">
+      <a class="wordmark" href="/" aria-label="Anand Jewels home"><span>AJ</span><strong>ANAND <i>JEWELS</i></strong></a>
+      <p class="eyebrow">PRIVATE ADMINISTRATION</p>
+      <h1>Welcome back.</h1>
+      <p class="muted">Sign in to manage your website and customer enquiries.</p>
+      <form id="login-form">
+        <label>Email address<input name="email" type="email" autocomplete="username" required></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="button button-primary" type="submit">Sign in <span>→</span></button>
+        <p id="login-error" class="form-error" role="alert"></p>
+      </form>
+      <a class="back-link" href="/">← Back to the website</a>
+    </section>
+  </main>
+  <div id="admin-app" class="admin-app" hidden>
+    <aside class="sidebar">
+      <a class="wordmark" href="/" aria-label="Anand Jewels home"><span>AJ</span><strong>ANAND <i>JEWELS</i></strong></a>
+      <p class="sidebar-label">WORKSPACE</p>
+      <nav id="navigation" aria-label="Admin sections">
+        <button class="nav-link active" data-view="overview"><span>◈</span> Overview</button>
+        <button class="nav-link" data-view="products"><span>◇</span> Collection <b id="product-nav-count">0</b></button>
+        <button class="nav-link" data-view="designs"><span>✧</span> Design cards <b id="design-nav-count">0</b></button>
+        <button class="nav-link" data-view="showrooms"><span>⌖</span> Showrooms <b id="showroom-nav-count">0</b></button>
+        <button class="nav-link" data-view="enquiries"><span>✉</span> Enquiries <b id="enquiry-nav-count">0</b></button>
+        <button class="nav-link" data-view="content"><span>✎</span> Website content</button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="profile"><span class="avatar">A</span><span><strong>Anand Jewels</strong><small id="admin-email"></small></span></div>
+        <button class="logout-button" id="logout-button">Sign out <span>↗</span></button>
+      </div>
+    </aside>
+    <main class="workspace">
+      <header class="topbar"><div><p class="eyebrow">ANAND JEWELS <span>/</span> ADMIN</p><p id="today-label" class="today-label"></p></div><a class="site-link" href="/" target="_blank" rel="noopener">View website <span>↗</span></a></header>
+      <section id="view-overview" class="view active">
+        <div class="page-heading"><div><p class="eyebrow">YOUR BUSINESS AT A GLANCE</p><h1>Good day, <em>Admin.</em></h1><p class="muted">A clear view of what’s happening across your website.</p></div></div>
+        <div class="stats-grid">
+          <article class="stat-card"><span class="stat-icon">◇</span><span class="stat-label">COLLECTION PIECES</span><strong id="stat-products">—</strong><span class="stat-foot">Live on your website</span></article>
+          <article class="stat-card"><span class="stat-icon">⌖</span><span class="stat-label">SHOWROOMS</span><strong id="stat-showrooms">—</strong><span class="stat-foot">Locations customers can visit</span></article>
+          <article class="stat-card stat-card-highlight"><span class="stat-icon">✉</span><span class="stat-label">NEW ENQUIRIES</span><strong id="stat-new-enquiries">—</strong><span class="stat-foot">Waiting for your response</span></article>
+        </div>
+        <div class="section-heading"><div><p class="eyebrow">CUSTOMER CONNECTIONS</p><h2>Recent enquiries</h2></div><button class="text-button" data-open-view="enquiries">View all enquiries <span>→</span></button></div>
+        <div id="recent-enquiries" class="table-wrap"></div>
+        <div class="welcome-note"><span>✦</span><div><strong>Your website, beautifully in sync.</strong><p>Changes to collection pieces and showroom details are reflected on your live website straight away.</p></div></div>
+      </section>
+      <section id="view-products" class="view">
+        <div class="page-heading heading-row"><div><p class="eyebrow">CURATE YOUR COLLECTION</p><h1>Collection <em>pieces.</em></h1><p class="muted">Add and update the designs visitors see on your website.</p></div><button class="button button-primary" id="add-product">＋ Add a piece</button></div>
+        <div id="products-table" class="table-wrap"></div>
+      </section>
+      <section id="view-showrooms" class="view">
+        <div class="page-heading heading-row"><div><p class="eyebrow">YOUR PLACES, THEIR NEXT VISIT</p><h1>Showroom <em>details.</em></h1><p class="muted">Keep your locations and visiting information up to date.</p></div><button class="button button-primary" id="add-showroom">＋ Add showroom</button></div>
+        <div id="showrooms-table" class="table-wrap"></div>
+      </section>
+      <section id="view-designs" class="view">
+        <div class="page-heading heading-row"><div><p class="eyebrow">MORE TO DISCOVER</p><h1>Editorial <em>design cards.</em></h1><p class="muted">Manage the additional image-led designs on your collection page.</p></div><button class="button button-primary" id="add-design">＋ Add a design</button></div>
+        <div id="designs-table" class="table-wrap"></div>
+      </section>
+      <section id="view-content" class="view">
+        <div class="page-heading"><div><p class="eyebrow">YOUR BRAND, YOUR WORDS</p><h1>Website <em>content.</em></h1><p class="muted">Update homepage, About, Collection, articles, policies, images and social links without changing the site design.</p></div></div>
+        <nav id="content-navigation" class="content-navigation" aria-label="Website content sections">
+          <button type="button" class="content-tab active" data-content-section="settings">Home &amp; brand</button>
+          <button type="button" class="content-tab" data-content-section="about">About</button>
+          <button type="button" class="content-tab" data-content-section="collection">Collection page</button>
+          <button type="button" class="content-tab" data-content-section="insights">Articles</button>
+          <button type="button" class="content-tab" data-content-section="policies">Policies</button>
+        </nav>
+        <form id="content-form" class="content-form">
+          <div id="content-fields"></div>
+          <div class="content-savebar"><p>Save your changes to publish them on the website.</p><button class="button button-primary" type="submit">Save website content <span>→</span></button></div>
+          <p id="content-error" class="form-error" role="alert"></p>
+        </form>
+      </section>
+      <section id="view-enquiries" class="view">
+        <div class="page-heading"><div><p class="eyebrow">EVERY MESSAGE MATTERS</p><h1>Customer <em>enquiries.</em></h1><p class="muted">Review messages and keep track of every follow-up.</p></div></div>
+        <div id="enquiries-table" class="table-wrap"></div>
+      </section>
+      <p id="toast" class="toast" role="status" aria-live="polite"></p>
+    </main>
+  </div>
+  <dialog id="record-dialog" class="record-dialog">
+    <form id="record-form">
+      <div class="dialog-heading"><div><p id="dialog-eyebrow" class="eyebrow"></p><h2 id="dialog-title"></h2></div><button id="dialog-close" class="dialog-close" type="button" aria-label="Close">×</button></div>
+      <div id="record-fields" class="record-fields"></div>
+      <p id="dialog-error" class="form-error" role="alert"></p>
+      <div class="dialog-actions"><button class="button button-quiet" id="dialog-cancel" type="button">Cancel</button><button class="button button-primary" type="submit">Save changes <span>→</span></button></div>
+    </form>
+  </dialog>
+  <script src="/admin.js" defer></script>
+</body>
+</html>

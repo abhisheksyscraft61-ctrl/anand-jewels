@@ -1,0 +1,13 @@
+{
+  "name": "anand-jewels",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Anand Jewels website and administration backend",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

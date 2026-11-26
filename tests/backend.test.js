@@ -1,5 +1,5 @@
 const assert = require("node:assert/strict");
-const { spawn } = require("node:child_process");
+const { spawn, spawnSync } = require("node:child_process");
 const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
@@ -45,6 +45,7 @@ before(async () => {
       ...process.env,
       ADMIN_EMAIL: "admin@example.com",
       ADMIN_PASSWORD: password,
+      DATABASE_URL: "",
       DATA_FILE: dataFile,
       PORT: String(port)
     },
@@ -223,4 +224,26 @@ test("rejects invalid public enquiries and invalid product data", async () => {
     body: JSON.stringify({ name: "Invalid Piece", category: "Rings", metal: "Gold", purity: -1, weight: 2 })
   });
   assert.equal(invalidProduct.status, 400);
+});
+
+test("Vercel API refuses to use temporary storage without PostgreSQL", () => {
+  const script = `
+    const handler = require("./api/[...path].js");
+    const response = {
+      headersSent: false,
+      writeHead(status, headers) { this.status = status; this.headers = headers; this.headersSent = true; },
+      end(body) { this.body = body; }
+    };
+    handler({ method: "GET", url: "/api/health", headers: {} }, response).then(() => {
+      process.stdout.write(String(response.status) + ":" + response.body);
+      process.exitCode = response.status === 500 ? 0 : 1;
+    });
+  `;
+  const result = spawnSync(process.execPath, ["-e", script], {
+    cwd: root,
+    env: { ...process.env, VERCEL: "1", ADMIN_EMAIL: "admin@example.com", ADMIN_PASSWORD: password, DATABASE_URL: "" },
+    encoding: "utf8"
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  assert.match(result.stdout, /^500:.*Backend is not configured/);
 });

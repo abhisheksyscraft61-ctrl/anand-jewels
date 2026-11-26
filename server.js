@@ -154,30 +154,68 @@ const initialData = {
   enquiries: []
 };
 
-function assertConfiguration() {
+function assertConfiguration({ requireDatabase = false } = {}) {
   if (!process.env.ADMIN_EMAIL || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(process.env.ADMIN_EMAIL)) {
     throw new Error("Set a valid ADMIN_EMAIL before starting the server.");
   }
   if (!process.env.ADMIN_PASSWORD || process.env.ADMIN_PASSWORD.length < 12) {
     throw new Error("Set an ADMIN_PASSWORD containing at least 12 characters before starting the server.");
   }
+  if (requireDatabase && !process.env.DATABASE_URL) throw new Error("Set DATABASE_URL to a persistent PostgreSQL database before deploying to Vercel.");
   if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) throw new Error("PORT must be a valid TCP port.");
+}
+
+function normalizeData(saved = {}) {
+  const content = { ...structuredClone(initialData.content), ...(saved.content || {}) };
+  for (const section of Object.keys(initialData.content)) {
+    content[section] = { ...initialData.content[section], ...(saved.content?.[section] || {}) };
+  }
+  return {
+    ...structuredClone(initialData),
+    ...saved,
+    designs: Array.isArray(saved.designs) ? saved.designs : structuredClone(initialData.designs),
+    products: Array.isArray(saved.products) ? saved.products : structuredClone(initialData.products),
+    showrooms: Array.isArray(saved.showrooms) ? saved.showrooms : structuredClone(initialData.showrooms),
+    enquiries: Array.isArray(saved.enquiries) ? saved.enquiries : [],
+    content
+  };
+}
+
+const pgPool = process.env.DATABASE_URL
+  ? new (require("pg").Pool)({ connectionString: process.env.DATABASE_URL, max: 1, idleTimeoutMillis: 10_000, connectionTimeoutMillis: 5_000 })
+  : null;
+
+async function loadPostgresData() {
+  await pgPool.query(`
+    CREATE TABLE IF NOT EXISTS anand_site_state (
+      id SMALLINT PRIMARY KEY CHECK (id = 1),
+      payload JSONB NOT NULL,
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS anand_admin_sessions (
+      token_hash TEXT PRIMARY KEY,
+      email TEXT NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS anand_rate_limits (
+      rate_key TEXT PRIMARY KEY,
+      attempts INTEGER NOT NULL,
+      reset_at TIMESTAMPTZ NOT NULL
+    );
+  `);
+  await pgPool.query(
+    "INSERT INTO anand_site_state (id, payload) VALUES (1, $1::jsonb) ON CONFLICT (id) DO NOTHING",
+    [JSON.stringify(initialData)]
+  );
+  const { rows } = await pgPool.query("SELECT payload FROM anand_site_state WHERE id = 1");
+  if (!rows[0]) throw new Error("PostgreSQL site data could not be initialized.");
+  return normalizeData(rows[0].payload);
 }
 
 async function loadData() {
   await fs.mkdir(DATA_DIR, { recursive: true });
   try {
-    const saved = JSON.parse(await fs.readFile(DATA_FILE, "utf8"));
-    const content = { ...structuredClone(initialData.content), ...(saved.content || {}) };
-    for (const section of Object.keys(initialData.content)) {
-      content[section] = { ...initialData.content[section], ...(saved.content?.[section] || {}) };
-    }
-    return {
-      ...structuredClone(initialData),
-      ...saved,
-      designs: Array.isArray(saved.designs) ? saved.designs : structuredClone(initialData.designs),
-      content
-    };
+    return normalizeData(JSON.parse(await fs.readFile(DATA_FILE, "utf8")));
   } catch (error) {
     if (error.code !== "ENOENT") throw error;
     await saveData(initialData);
@@ -192,10 +230,61 @@ async function saveData(data) {
   await fs.rename(temporary, DATA_FILE);
 }
 
-let dataPromise = loadData();
+let dataPromise = pgPool || process.env.VERCEL === "1" ? Promise.resolve(null) : loadData();
+let databasePromise;
 let writeQueue = Promise.resolve();
 
+function ensurePostgres() {
+  if (!pgPool) throw new Error("DATABASE_URL is required for PostgreSQL storage.");
+  if (!databasePromise) {
+    databasePromise = loadPostgresData().catch(error => {
+      databasePromise = null;
+      throw error;
+    });
+  }
+  return databasePromise;
+}
+
+async function initialize({ requireDatabase = false } = {}) {
+  assertConfiguration({ requireDatabase });
+  if (requireDatabase && !pgPool) throw new Error("DATABASE_URL is required for the Vercel backend.");
+  if (pgPool) await ensurePostgres();
+  else await dataPromise;
+}
+
+async function getData() {
+  if (!pgPool) {
+    await dataPromise;
+    return dataPromise;
+  }
+  await ensurePostgres();
+  const { rows } = await pgPool.query("SELECT payload FROM anand_site_state WHERE id = 1");
+  if (!rows[0]) throw new Error("PostgreSQL site data is missing.");
+  return normalizeData(rows[0].payload);
+}
+
+async function updatePostgresData(change) {
+  await ensurePostgres();
+  const client = await pgPool.connect();
+  try {
+    await client.query("BEGIN");
+    const { rows } = await client.query("SELECT payload FROM anand_site_state WHERE id = 1 FOR UPDATE");
+    if (!rows[0]) throw new Error("PostgreSQL site data is missing.");
+    const data = normalizeData(rows[0].payload);
+    const result = await change(data);
+    await client.query("UPDATE anand_site_state SET payload = $1::jsonb, updated_at = NOW() WHERE id = 1", [JSON.stringify(data)]);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    await client.query("ROLLBACK");
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 function updateData(change) {
+  if (pgPool) return updatePostgresData(change);
   const operation = writeQueue.then(async () => {
     const data = await dataPromise;
     const result = await change(data);
@@ -217,6 +306,19 @@ function json(res, status, body, headers = {}) {
 }
 
 function readBody(req, maxBytes = 32_000) {
+  if (req.body !== undefined) {
+    try {
+      const raw = Buffer.isBuffer(req.body) ? req.body.toString("utf8") : typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+      if (Buffer.byteLength(raw) > maxBytes) throw Object.assign(new Error("Request body is too large."), { status: 413 });
+      const parsed = raw ? JSON.parse(raw) : {};
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        throw Object.assign(new Error("Request body must be a JSON object."), { status: 400 });
+      }
+      return Promise.resolve(parsed);
+    } catch (error) {
+      return Promise.reject(error.status ? error : Object.assign(new Error("Request body must be valid JSON."), { status: 400 }));
+    }
+  }
   return new Promise((resolve, reject) => {
     let body = "";
     req.on("data", chunk => {
@@ -247,16 +349,85 @@ function cookieValue(req, name) {
   return pair ? pair.slice(name.length + 1) : "";
 }
 
-function getSession(req) {
+async function getSession(req) {
   const token = cookieValue(req, "aj_session");
   if (!token) return null;
-  const session = sessions.get(crypto.createHash("sha256").update(token).digest("hex"));
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  if (pgPool) {
+    const expiresAt = new Date(Date.now() + SESSION_TTL);
+    const { rows } = await pgPool.query(
+      "UPDATE anand_admin_sessions SET expires_at = $2 WHERE token_hash = $1 AND expires_at > NOW() RETURNING email",
+      [tokenHash, expiresAt]
+    );
+    if (!rows[0]) {
+      await pgPool.query("DELETE FROM anand_admin_sessions WHERE token_hash = $1", [tokenHash]);
+      return null;
+    }
+    return { email: rows[0].email, expiresAt: expiresAt.getTime() };
+  }
+  const session = sessions.get(tokenHash);
   if (!session || session.expiresAt <= Date.now()) {
-    sessions.delete(crypto.createHash("sha256").update(token).digest("hex"));
+    sessions.delete(tokenHash);
     return null;
   }
   session.expiresAt = Date.now() + SESSION_TTL;
   return session;
+}
+
+async function saveSession(token, email, expiresAt) {
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  if (pgPool) {
+    await pgPool.query(
+      "INSERT INTO anand_admin_sessions (token_hash, email, expires_at) VALUES ($1, $2, $3)",
+      [tokenHash, email, new Date(expiresAt)]
+    );
+    return;
+  }
+  sessions.set(tokenHash, { email, expiresAt });
+}
+
+async function deleteSession(token) {
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  if (pgPool) {
+    await pgPool.query("DELETE FROM anand_admin_sessions WHERE token_hash = $1", [tokenHash]);
+    return;
+  }
+  sessions.delete(tokenHash);
+}
+
+async function incrementRateLimit(key, windowMs) {
+  const now = Date.now();
+  if (pgPool) {
+    const resetAt = new Date(now + windowMs);
+    const { rows } = await pgPool.query(
+      `INSERT INTO anand_rate_limits (rate_key, attempts, reset_at)
+       VALUES ($1, 1, $2)
+       ON CONFLICT (rate_key) DO UPDATE SET
+         attempts = CASE WHEN anand_rate_limits.reset_at <= $3 THEN 1 ELSE anand_rate_limits.attempts + 1 END,
+         reset_at = CASE WHEN anand_rate_limits.reset_at <= $3 THEN $2 ELSE anand_rate_limits.reset_at END
+       RETURNING attempts`,
+      [key, resetAt, new Date(now)]
+    );
+    return rows[0].attempts;
+  }
+  const current = loginAttempts.get(key);
+  const value = current && current.reset > now ? current : { count: 0, reset: now + windowMs };
+  value.count++;
+  loginAttempts.set(key, value);
+  return value.count;
+}
+
+async function clearRateLimit(key) {
+  if (pgPool) {
+    await pgPool.query("DELETE FROM anand_rate_limits WHERE rate_key = $1", [key]);
+    return;
+  }
+  loginAttempts.delete(key);
+}
+
+function clientAddress(req) {
+  const forwarded = req.headers["x-forwarded-for"];
+  return (typeof forwarded === "string" ? forwarded.split(",")[0].trim() : "") || req.socket?.remoteAddress || "unknown";
 }
 
 function requireSameOrigin(req, res) {
@@ -467,13 +638,8 @@ function validateContent(value) {
 async function adminApi(req, res, url) {
   if (url.pathname === "/api/admin/login" && req.method === "POST") {
     if (!requireSameOrigin(req, res)) return;
-    const client = req.socket.remoteAddress || "unknown";
-    const attempt = loginAttempts.get(client) || { count: 0, reset: Date.now() + 15 * 60_000 };
-    if (attempt.reset <= Date.now()) {
-      attempt.count = 0;
-      attempt.reset = Date.now() + 15 * 60_000;
-    }
-    if (attempt.count >= 10) return json(res, 429, { error: "Too many sign-in attempts. Try again later." });
+    const client = `login:${clientAddress(req)}`;
+    if (await incrementRateLimit(client, 15 * 60_000) > 10) return json(res, 429, { error: "Too many sign-in attempts. Try again later." });
     const body = await readBody(req);
     const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
     const password = typeof body.password === "string" ? body.password : "";
@@ -482,36 +648,29 @@ async function adminApi(req, res, url) {
       crypto.createHash("sha256").update(password).digest(),
       crypto.createHash("sha256").update(process.env.ADMIN_PASSWORD).digest()
     );
-    if (!emailOk || !passwordOk) {
-      attempt.count++;
-      loginAttempts.set(client, attempt);
-      return json(res, 401, { error: "Email or password is incorrect." });
-    }
-    loginAttempts.delete(client);
+    if (!emailOk || !passwordOk) return json(res, 401, { error: "Email or password is incorrect." });
+    await clearRateLimit(client);
     const token = crypto.randomBytes(32).toString("base64url");
-    sessions.set(crypto.createHash("sha256").update(token).digest("hex"), {
-      email: process.env.ADMIN_EMAIL,
-      expiresAt: Date.now() + SESSION_TTL
-    });
+    await saveSession(token, process.env.ADMIN_EMAIL, Date.now() + SESSION_TTL);
     return json(res, 200, { email: process.env.ADMIN_EMAIL }, {
-      "Set-Cookie": `aj_session=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_TTL / 1000}${req.socket.encrypted || process.env.NODE_ENV === "production" ? "; Secure" : ""}`
+      "Set-Cookie": `aj_session=${encodeURIComponent(token)}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${SESSION_TTL / 1000}${req.socket?.encrypted || process.env.NODE_ENV === "production" ? "; Secure" : ""}`
     });
   }
   if (url.pathname === "/api/admin/logout" && req.method === "POST") {
     if (!requireSameOrigin(req, res)) return;
     const token = cookieValue(req, "aj_session");
-    sessions.delete(crypto.createHash("sha256").update(token).digest("hex"));
-    return json(res, 200, { ok: true }, { "Set-Cookie": "aj_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0" });
+    await deleteSession(token);
+    return json(res, 200, { ok: true }, { "Set-Cookie": `aj_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0${process.env.NODE_ENV === "production" ? "; Secure" : ""}` });
   }
 
-  const session = getSession(req);
+  const session = await getSession(req);
   if (url.pathname === "/api/admin/session" && req.method === "GET") {
     return session ? json(res, 200, { email: session.email }) : json(res, 401, { error: "Sign in required." });
   }
   if (!session) return json(res, 401, { error: "Sign in required." });
   if (req.method !== "GET" && !requireSameOrigin(req, res)) return;
 
-  const data = await dataPromise;
+  const data = await getData();
   if (url.pathname === "/api/admin/summary" && req.method === "GET") {
     const open = data.enquiries.filter(enquiry => enquiry.status === "New").length;
     return json(res, 200, { products: data.products.length, designs: data.designs.length, showrooms: data.showrooms.length, enquiries: data.enquiries.length, newEnquiries: open });
@@ -583,22 +742,18 @@ async function adminApi(req, res, url) {
 
 async function publicApi(req, res, url) {
   if (url.pathname === "/api/public/catalog" && req.method === "GET") {
-    const data = await dataPromise;
+    const data = await getData();
     return json(res, 200, { products: data.products, designs: data.designs, showrooms: data.showrooms, content: data.content }, { "Cache-Control": "no-cache" });
   }
   if (url.pathname === "/api/public/enquiries" && req.method === "POST") {
-    const client = req.socket.remoteAddress || "unknown";
-    const now = Date.now();
-    const recent = (loginAttempts.get(`enquiry:${client}`) || []).filter(time => now - time < 60_000);
-    if (recent.length >= 5) return json(res, 429, { error: "Please wait a moment before sending another enquiry." });
     const body = await readBody(req);
     if (typeof body.hp === "string" && body.hp.trim()) return json(res, 201, { ok: true });
     const email = cleanText(body.email, 254, "Email", { required: false });
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json(res, 400, { error: "Enter a valid email address." });
     const phone = cleanText(body.phone, 30, "Phone");
     if (!/^[+()\d\s-]{7,30}$/.test(phone)) return json(res, 400, { error: "Enter a valid phone number." });
-    recent.push(now);
-    loginAttempts.set(`enquiry:${client}`, recent);
+    const client = `enquiry:${clientAddress(req)}`;
+    if (await incrementRateLimit(client, 60_000) > 5) return json(res, 429, { error: "Please wait a moment before sending another enquiry." });
     const enquiry = {
       id: crypto.randomUUID(),
       name: cleanText(body.name, 100, "Name"),
@@ -677,15 +832,14 @@ async function handle(req, res) {
 }
 
 if (require.main === module) {
-  try {
-    assertConfiguration();
-    const server = http.createServer(handle);
+  const server = http.createServer(handle);
+  server.on("close", () => sessions.clear());
+  initialize().then(() => {
     server.listen(PORT, () => console.log(`Anand Jewels is available at http://localhost:${PORT} (admin: /admin)`));
-    server.on("close", () => sessions.clear());
-  } catch (error) {
+  }).catch(error => {
     console.error(error.message);
     process.exitCode = 1;
-  }
+  });
 }
 
-module.exports = { handle, validateProduct, validateShowroom, initialData };
+module.exports = { handle, initialize, validateProduct, validateShowroom, initialData };
